@@ -3,7 +3,7 @@ version: '3'
 services:
 
   db:
-    container_name: bulletindb
+    container_name: carrentaldb
     image: postgres
     hostname: db
     environment:
@@ -14,19 +14,19 @@ services:
     ports:
       - 5432:5432
     networks:
-      - bulletinnet
+      - carrentalnet
 
   bulletinapi:
-    container_name: bulletinapi
-    image: mjsong/bulletinapi:v1
-    hostname: bulletinapi
+    container_name: carrentalapi
+    image: mjsong/carrentalapi:v1
+    hostname: carrentalapi
     build:
       context: .
       dockerfile: Dockerfile
     environment:
       GET_HOSTS_FROM: dns
     networks:
-      - bulletinnet
+      - carrentalnet
     volumes:
       - .:/go/src/CarRental
     ports:
@@ -39,5 +39,5 @@ services:
       kompose.service.type: LoadBalancer
 
 networks:
-  bulletinnet:
+  carrentalnet:
     driver: bridge
