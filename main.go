@@ -15,54 +15,61 @@ const (
 	// please, do not define constants like this in production
 	DbHost     = "db"
 	DbUser     = "postgres-dev"
-	DbPassword = "mysecretpassword"
+	DbPassword = "password"
 	DbName     = "dev"
-	Migration  = `CREATE TABLE IF NOT EXISTS bulletins (
+	Migration  = `CREATE TABLE IF NOT EXISTS users (
 id serial PRIMARY KEY,
-author text NOT NULL,
-content text NOT NULL,
-created_at timestamp with time zone DEFAULT current_timestamp)`
+first_name text NOT NULL,
+last_name text NOT NULL,
+email text NOT NULL,
+password text NOT NULL,
+created_time timestamp with time zone DEFAULT current_timestamp)`
 )
 
-// board's bulletin
-type Bulletin struct {
-	Author    string    `json:"author" binding:"required"`
-	Content   string    `json:"content" binding:"required"`
-	CreatedAt time.Time `json:"created_at"`
+type User struct {
+	firstName string 	`json:"firstName" binding:"required"`
+	lastName string `json:"lastName" binding:"required"`
+	email string `json:"email" binding:"required"`
+	password string `json:"password" binding:"required"`
+	createdTime time.Time `json:"createdTime"`
 }
-
 // global database connection
 var db *sql.DB
 
-func GetBulletins() ([]Bulletin, error) {
-	const q = `SELECT author, content, created_at FROM bulletins ORDER BY created_at DESC LIMIT 100`
+func GetALLUsers() ([]User, error) {
+	const q = `SELECT first_name, last_name, email, password, created_time FROM users ORDER BY created_time DESC LIMIT 100`
 
 	rows, err := db.Query(q)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]Bulletin, 0)
+	results := make([]User, 0)
 
 	for rows.Next() {
-		var author string
-		var content string
-		var createAt time.Time
+		var firstName string
+		var lastName string
+		var email string
+		var password string
+		var createdTime time.Time
 		// scanning the data from the returned rows
-		err = rows.Scan(&author, &content, &createAt)
+		err = rows.Scan(&firstName, &lastName, &email, &password, &createdTime)
 		if err != nil {
 			return nil, err
 		}
 		// creating a new result
-		results = append(results, Bulletin{author, content, createAt})
+		user := User{firstName, lastName, email, password, createdTime}
+		log.Printf("User is %+v", user)
+		results = append(results, user)
 	}
 
 	return results, nil
 }
 
-func AddBulletin(bulletin Bulletin) error {
-	const q = `INSERT INTO bulletins(author, content, created_at) VALUES ($1, $2, $3)`
-	_, err := db.Exec(q, bulletin.Author, bulletin.Content, bulletin.CreatedAt)
+func CreateUser(user User) error {
+	log.Printf("New user information is %+v", user)
+	const q = `INSERT INTO users(first_name, last_name, email, password, created_time) VALUES ($1, $2, $3, $4, $5)`
+	_, err := db.Exec(q, user.firstName, user.lastName, user.email, user.password, user.createdTime)
 	return err
 }
 
@@ -71,8 +78,8 @@ func main() {
 	// create a router with a default configuration
 	r := gin.Default()
 	// endpoint to retrieve all posted bulletins
-	r.GET("/board", func(context *gin.Context) {
-		results, err := GetBulletins()
+	r.GET("/get-all-users", func(context *gin.Context) {
+		results, err := GetALLUsers()
 		if err != nil {
 			context.JSON(http.StatusInternalServerError, gin.H{"status": "internal error: " + err.Error()})
 			return
@@ -80,12 +87,13 @@ func main() {
 		context.JSON(http.StatusOK, results)
 	})
 	// endpoint to create a new bulletin
-	r.POST("/board", func(context *gin.Context) {
-		var b Bulletin
+	r.POST("/create-new-user", func(context *gin.Context) {
+		var user User
+		log.Printf("context is %+v", context)
 		// reading the request's body & parsing the json
-		if context.Bind(&b) == nil {
-			b.CreatedAt = time.Now()
-			if err := AddBulletin(b); err != nil {
+		if context.Bind(&user) == nil {
+			user.createdTime = time.Now()
+			if err := CreateUser(user); err != nil {
 				context.JSON(http.StatusInternalServerError, gin.H{"status": "internal error: " + err.Error()})
 				return
 			}

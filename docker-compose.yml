@@ -16,7 +16,7 @@ services:
     networks:
       - carrentalnet
 
-  bulletinapi:
+  carrentalapi:
     container_name: carrentalapi
     image: mjsong/carrentalapi:v1
     hostname: carrentalapi
